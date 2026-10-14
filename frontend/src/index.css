@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-800 antialiased font-sans;
+  }
+}
+
+/* Custom minimal badge utilities */
+.badge-todo {
+  @apply bg-gray-100 text-gray-700 border border-gray-300;
+}
+.badge-in-progress {
+  @apply bg-blue-50 text-blue-700 border border-blue-200;
+}
+.badge-completed {
+  @apply bg-emerald-50 text-emerald-700 border border-emerald-200;
+}
+.badge-cancelled {
+  @apply bg-red-50 text-red-700 border border-red-200;
+}
+.badge-overdue {
+  @apply text-red-600 font-semibold;
+}

@@ -1,0 +1,9 @@
+{
+  "name": "taskpilot-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "backend:dev": "npm --prefix backend run dev",
+    "frontend:dev": "npm --prefix frontend run dev"
+  }
+}
