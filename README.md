@@ -54,7 +54,6 @@ TaskPilot/
 │   │   │   ├── employeeValidator.js  # Zod schema for employee
 │   │   │   └── taskValidator.js      # Zod schema for task & status transitions
 │   │   └── server.js                 # Express app bootstrap
-│   ├── .env.example
 │   ├── .env
 │   └── package.json
 ├── frontend/
@@ -65,7 +64,6 @@ TaskPilot/
 │   │   ├── pages/                    # Multi-route views (List, Add, Edit, View)
 │   │   ├── App.jsx                   # Route declarations
 │   │   └── main.jsx
-│   ├── .env.example
 │   ├── .env
 │   ├── tailwind.config.js
 │   ├── vite.config.js
