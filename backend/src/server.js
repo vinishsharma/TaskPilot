@@ -15,12 +15,37 @@ const PORT = process.env.PORT || 5000;
 // Connect to Database
 connectDB();
 
-// Middlewares
-app.use(cors());
+// Dynamic CORS allowing local development, Vercel deployments, and production URLs
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow requests with no origin (e.g. mobile apps, curl, server-to-server health checks)
+      if (!origin) return callback(null, true);
+      if (
+        origin.includes('localhost') ||
+        origin.endsWith('.vercel.app') ||
+        (process.env.CLIENT_URL && origin === process.env.CLIENT_URL)
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Permissive fallback
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health Check
+// Health Check / Root check
+app.get('/', (req, res) => {
+  res.status(200).json({
+    name: 'TaskPilot API',
+    status: 'online',
+    version: '1.0.0',
+    health: '/api/health',
+  });
+});
+
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
