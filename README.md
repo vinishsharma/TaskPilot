@@ -1,29 +1,39 @@
 # TaskPilot &mdash; Employee &amp; Task Management System
 
-A high-performance, full-stack **MERN** (MongoDB, Express, React, Node.js) web application for enterprise employee resource tracking and task workflow management, built according to strict server-enforced business rules.
+A full-stack **MERN** (MongoDB, Express, React, Node.js) web application built to manage employees, assign tasks to them, and view real-time company workloads on a clean dashboard.
+
+All core business rules (assignment rules, capacity limits, status flows, and deletion safety) are strictly checked and enforced on the backend.
 
 ---
 
 ## Table of Contents
-
-1. [Tech Stack & Architecture](#tech-stack--architecture)
-2. [Project Structure](#project-structure)
-3. [Environment Variables & Setup](#environment-variables--setup)
-4. [API Overview](#api-overview)
-5. [Database Schema & Employee ➔ Task Relationship](#database-schema--employee--task-relationship)
-6. [How Employee Deletion is Handled](#how-employee-deletion-is-handled)
-7. [System Assumptions](#system-assumptions)
-8. [Assessment Architectural Questions & Answers](#assessment-architectural-questions--answers)
+1. [Tech Stack](#1-tech-stack)
+2. [Project Structure](#2-project-structure)
+3. [Environment Setup & Running Locally](#3-environment-setup--running-locally)
+4. [API Endpoints](#4-api-endpoints)
+5. [Database Design & Employee ➔ Task Relationship](#5-database-design--employee--task-relationship)
+6. [How Employee Deletion is Handled](#6-how-employee-deletion-is-handled)
+7. [Assumptions Made](#7-assumptions-made)
+8. [Answers to Assessment Questions](#8-answers-to-assessment-questions)
 
 ---
 
-## 1. Tech Stack & Architecture
+## 1. Tech Stack
 
-- **Backend**: Node.js & Express.js
-- **Database**: MongoDB with Mongoose ODM (Atomic auto-increment sequence counters, compound indexes).
-- **Validation**: Zod schema validation on both server-side middlewares and client-side forms.
-- **Frontend**: React 18, Vite, React Router v6, Tailwind CSS, Lucide React icons.
-- **State & URL Sync**: Declarative URL query synchronization using `useSearchParams`.
+### Backend
+- **Node.js & Express.js**: Used to build the REST API with ES Modules and clean arrow functions.
+- **MongoDB & Mongoose**: Used for storing data with schemas, compound indexes, and aggregation queries.
+- **Zod**: Used for validating incoming request data and returning clear error messages.
+- **CORS**: Configured so the frontend on local and Vercel can talk to the backend without issues.
+- **Dotenv**: Used to read environment variables from `.env`.
+
+### Frontend
+- **React 18 & Vite**: Used for building a fast, responsive user interface.
+- **React Router DOM**: Used for routing between pages (Dashboard, Employee pages, Task pages).
+- **Tailwind CSS**: Used for simple, clean styling that looks good on mobile, tablet, and desktop.
+- **Axios**: Used to make HTTP requests to the backend API and download CSV files.
+- **Lucide React**: Clean icons for buttons, tables, and status badges.
+- **Zod**: Used to validate form inputs directly in the browser before submitting.
 
 ---
 
@@ -33,38 +43,26 @@ A high-performance, full-stack **MERN** (MongoDB, Express, React, Node.js) web a
 TaskPilot/
 ├── backend/
 │   ├── src/
-│   │   ├── config/
-│   │   │   └── db.js                 # Mongoose connection helper
-│   │   ├── controllers/
-│   │   │   ├── employeeController.js # Full Employee CRUD & capacity verification
-│   │   │   ├── taskController.js     # Task CRUD, state machine, CSV export
-│   │   │   └── dashboardController.js# Server aggregation metrics & workload
-│   │   ├── middlewares/
-│   │   │   ├── errorHandler.js       # Centralized error handler (400, 404, 409, 500)
-│   │   │   └── validateRequest.js    # Generic Zod validation middleware
-│   │   ├── models/
-│   │   │   ├── Employee.js           # Employee schema & indexes
-│   │   │   ├── Task.js               # Task schema, snapshot & overdue virtual
-│   │   │   └── Counter.js            # Atomic sequence generator (TSK-XXX, EMP-XXX)
-│   │   ├── routes/
-│   │   │   ├── employeeRoutes.js     # /api/employees
-│   │   │   ├── taskRoutes.js         # /api/tasks
-│   │   │   └── dashboardRoutes.js    # /api/dashboard
-│   │   ├── validators/
-│   │   │   ├── employeeValidator.js  # Zod schema for employee
-│   │   │   └── taskValidator.js      # Zod schema for task & status transitions
-│   │   └── server.js                 # Express app bootstrap
+│   │   ├── config/db.js          # MongoDB connection
+│   │   ├── controllers/          # Business logic for employees, tasks, dashboard
+│   │   ├── middlewares/          # Validation and error handling
+│   │   ├── models/               # Employee, Task, and Counter schemas
+│   │   ├── routes/               # API route definitions
+│   │   ├── validators/           # Zod validation schemas
+│   │   └── server.js             # Express server entry point
 │   ├── .env
+│   ├── .env.example
 │   └── package.json
 ├── frontend/
 │   ├── src/
-│   │   ├── api/                      # Axios API clients
-│   │   ├── components/common/        # Navbar, Badges, Modals, Pagination
-│   │   ├── context/                  # Notification & toast provider
-│   │   ├── pages/                    # Multi-route views (List, Add, Edit, View)
-│   │   ├── App.jsx                   # Route declarations
-│   │   └── main.jsx
+│   │   ├── api/                  # Axios API calls
+│   │   ├── components/common/    # Navbar, Badges, Modals, Pagination
+│   │   ├── context/              # Notification toast context
+│   │   ├── pages/                # All pages (List, Add, Edit, View, Dashboard)
+│   │   ├── App.jsx               # Routes setup
+│   │   └── main.jsx              # React app mount
 │   ├── .env
+│   ├── .env.example
 │   ├── tailwind.config.js
 │   ├── vite.config.js
 │   └── package.json
@@ -73,228 +71,221 @@ TaskPilot/
 
 ---
 
-## 3. Environment Variables & Setup
+## 3. Environment Setup & Running Locally
 
-### A. Environment Files
+### Step 1: Clone the repository
+```bash
+git clone https://github.com/vinishsharma/TaskPilot.git
+cd TaskPilot
+```
 
-Create `.env` in `backend/`:
+### Step 2: Configure Environment Variables
 
+**Backend (`backend/.env`)**:
 ```env
-PORT=6000
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/taskpilot?retryWrites=true&w=majority
+PORT=8081
+MONGODB_URI=your_mongodb_connection_string
 NODE_ENV=development
 ```
 
-Create `.env` in `frontend/`:
-
+**Frontend (`frontend/.env`)**:
 ```env
-VITE_API_BASE_URL=http://localhost:6000/api
+VITE_API_BASE_URL=http://localhost:8081/api
 ```
 
-### B. Running Locally
+### Step 3: Install Dependencies & Run
 
-1. **Install Dependencies**:
+**Terminal 1 (Backend)**:
+```bash
+cd backend
+npm install
+npm run dev
+```
 
-   ```bash
-   # In backend
-   cd backend && npm install
+**Terminal 2 (Frontend)**:
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-   # In frontend
-   cd ../frontend && npm install
-   ```
-
-2. **Start Backend Server**:
-
-   ```bash
-   cd backend
-   npm run dev
-   ```
-
-   _Server will output: `[MongoDB Connected]` and `[TaskPilot Server running on port 8081]`._
-
-3. **Start Frontend Server**:
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-   _Frontend opens at `http://localhost:3000`._
+Open `http://localhost:3000` in your browser.
 
 ---
 
-## 4. API Overview
+## 4. API Endpoints
 
-| Method   | Endpoint                | Description                                             | Status Codes       |
-| :------- | :---------------------- | :------------------------------------------------------ | :----------------- |
-| `GET`    | `/api/health`           | Service health status                                   | 200                |
-| `GET`    | `/api/employees`        | List employees (paginated, search, filter, sort)        | 200                |
-| `GET`    | `/api/employees/all`    | List all employees (for task assignment dropdowns)      | 200                |
-| `GET`    | `/api/employees/:id`    | View employee details + assigned task history           | 200, 404           |
-| `POST`   | `/api/employees`        | Create employee (auto-generated `EMP-XXX` ID)           | 201, 400, 409      |
-| `PUT`    | `/api/employees/:id`    | Update employee (preserves task snapshots)              | 200, 400, 404, 409 |
-| `DELETE` | `/api/employees/:id`    | Delete employee (blocked if active tasks exist)         | 200, 400, 404      |
-| `GET`    | `/api/tasks`            | List tasks (search, filter, sort, pagination)           | 200                |
-| `GET`    | `/api/tasks/:id`        | View task details & next allowed transitions            | 200, 404           |
-| `POST`   | `/api/tasks`            | Create task (auto-generated `TSK-XXX` ID)               | 201, 400, 404      |
-| `PUT`    | `/api/tasks/:id`        | Update task details (status cannot be changed here)     | 200, 400, 404      |
-| `PUT`    | `/api/tasks/:id/status` | Dedicated status transition state machine               | 200, 400, 404      |
-| `DELETE` | `/api/tasks/:id`        | Delete task                                             | 200, 404           |
-| `GET`    | `/api/tasks/export`     | Stream CSV of all tasks matching current filters & sort | 200                |
-| `GET`    | `/api/dashboard`        | Dashboard metrics & server-calculated workload          | 200                |
+### Employees (`/api/employees`)
+- `GET /api/employees` &mdash; Get paginated employees (supports search, department/status filter, and sorting).
+- `GET /api/employees/all` &mdash; Get all employees (used for task assignment dropdowns).
+- `GET /api/employees/:id` &mdash; Get single employee details with their task history.
+- `POST /api/employees` &mdash; Create an employee (auto-assigns `EMP-001`, `EMP-002`, etc.).
+- `PUT /api/employees/:id` &mdash; Edit employee details.
+- `DELETE /api/employees/:id` &mdash; Delete employee (blocked if they have active tasks).
+
+### Tasks (`/api/tasks`)
+- `GET /api/tasks` &mdash; Get paginated tasks (supports search, filters, and priority/date sorting).
+- `GET /api/tasks/:id` &mdash; Get single task details with allowed next status options.
+- `POST /api/tasks` &mdash; Create a task (auto-assigns `TSK-001`, `TSK-002`, etc.).
+- `PUT /api/tasks/:id` &mdash; Edit task details (cannot change status or edit completed/cancelled tasks).
+- `PUT /api/tasks/:id/status` &mdash; Dedicated endpoint to change status (`Todo -> In Progress -> Completed/Cancelled`).
+- `DELETE /api/tasks/:id` &mdash; Delete a task.
+- `GET /api/tasks/export` &mdash; Download CSV of all tasks matching the current filters.
+
+### Dashboard (`/api/dashboard`)
+- `GET /api/dashboard` &mdash; Returns employee counts, task counts, overdue task count, and employee workload.
 
 ---
 
-## 5. Database Schema & Employee ➔ Task Relationship
+## 5. Database Design & Employee ➔ Task Relationship
 
-### Reference + Snapshot Pattern
+I used MongoDB with Mongoose. To link Tasks and Employees, I used a **Reference + Snapshot** approach:
 
-The system implements a hybrid **Reference + Embedded Snapshot** design:
+1. **Direct Reference (`assignedEmployee`)**:
+   - The task stores the employee's `_id`. This allows real-time lookups, active task counting, and checking employee availability.
 
-1. **`assignedEmployee` (ObjectId Reference)**:
-   Points to `Employee._id`. Used for real-time joins, active workload counting, and referential checks.
-2. **`employeeSnapshot` (Embedded Subdocument)**:
-   Stores `{ employeeId, fullName, email, department }` directly inside the Task document.
-   - **Why?**: If an employee is later deleted or modified, old historical tasks (e.g. `Completed` or `Cancelled`) retain meaningful audit logs without foreign key breakage or empty `"Unassigned"` fields in past reports.
+2. **Embedded Snapshot (`employeeSnapshot`)**:
+   - When a task is created or assigned, the employee's details (`fullName`, `employeeId`, `email`, `department`) are copied directly into the task document.
+   - **Why this is useful**: If an employee leaves the company and their profile is deleted later, completed or past tasks will still display who worked on them instead of showing blank or broken data.
 
 ### Fields Summary
 
 - **Employee**:
-  - `employeeId`: String, Unique, System-generated (`EMP-001`).
-  - `fullName`: String, Required.
-  - `email`: String, Unique, Normalized lowercase.
-  - `phone`: String, Required.
-  - `department`: Enum: `['Development', 'Design', 'QA', 'HR', 'Sales']`.
-  - `role`: String, Required.
-  - `joiningDate`: Date, Required.
-  - `status`: Enum: `['Active', 'Inactive', 'On Leave']`.
-  - `skills`: Array of Strings.
-  - `leaveStart` / `leaveEnd`: Date, required only when `status === 'On Leave'`.
+  - `employeeId`: Unique string, auto-generated (e.g. `EMP-001`).
+  - `fullName`: Required string.
+  - `email`: Unique string (normalized to lowercase).
+  - `phone`: Required string.
+  - `department`: Enum (`Development`, `Design`, `QA`, `HR`, `Sales`).
+  - `role`: Required string.
+  - `joiningDate`: Required date.
+  - `status`: Enum (`Active`, `Inactive`, `On Leave`).
+  - `skills`: Array of strings.
+  - `leaveStart` & `leaveEnd`: Required only when status is `On Leave`.
+
 - **Task**:
-  - `taskId`: String, Unique, System-generated (`TSK-001`).
-  - `title`: String, Required.
-  - `description`: String.
-  - `assignedEmployee`: ObjectId Ref to Employee.
-  - `employeeSnapshot`: Object `{ employeeId, fullName, email, department }`.
-  - `department`: Enum (same as Employee).
-  - `priority`: Enum: `['Low', 'Medium', 'High', 'Critical']`.
-  - `status`: Enum: `['Todo', 'In Progress', 'Completed', 'Cancelled']`. Default: `'Todo'`.
-  - `startDate`: Date, Required.
-  - `dueDate`: Date, Required (`dueDate >= startDate`).
-  - `completedDate`: Date, managed exclusively by the backend.
-  - `isOverdue`: Virtual / Computed (`today > dueDate && status not in ['Completed', 'Cancelled']`).
+  - `taskId`: Unique string, auto-generated (e.g. `TSK-001`).
+  - `title`: Required string.
+  - `description`: Optional text.
+  - `assignedEmployee`: Reference ID to Employee.
+  - `employeeSnapshot`: Object holding employee details.
+  - `department`: Enum matching departments.
+  - `priority`: Enum (`Low`, `Medium`, `High`, `Critical`).
+  - `status`: Enum (`Todo`, `In Progress`, `Completed`, `Cancelled`). Defaults to `Todo`.
+  - `startDate`: Required date.
+  - `dueDate`: Required date (must be same as or after start date).
+  - `completedDate`: Set automatically by the backend when completed.
+  - `isOverdue`: Calculated on the fly (`today > dueDate` and status is not completed or cancelled).
 
 ---
 
 ## 6. How Employee Deletion is Handled
 
-1. **Active Task Guard**:
-   When a `DELETE /api/employees/:id` request arrives, the server checks:
+1. **Active Task Check**:
+   Before deleting an employee, the backend queries the database for active tasks:
    ```javascript
    const activeCount = await Task.countDocuments({
      assignedEmployee: employee._id,
-     status: { $in: ["Todo", "In Progress"] },
+     status: { $in: ['Todo', 'In Progress'] }
    });
-   if (activeCount > 0) {
-     throw new AppError("Cannot delete employee with active tasks...", 400);
-   }
    ```
-2. **Audit & Historical Integrity**:
-   If the employee has only `Completed` or `Cancelled` tasks:
-   - The employee document is safely deleted.
-   - The reference `assignedEmployee` on their past tasks is unlinked (`null`), while `employeeSnapshot` preserves their name, employee ID, and department permanently.
+   If `activeCount > 0`, the deletion is blocked with a `400 Bad Request` error telling the user that the employee still has active tasks that must be reassigned or finished first.
+
+2. **Safe Historical Record Keeping**:
+   If the employee only has `Completed` or `Cancelled` tasks:
+   - The employee is deleted from the `employees` collection.
+   - On the old tasks, `assignedEmployee` is set to `null`, but the `employeeSnapshot` (name, ID, department) stays intact. Old tasks and past CSV exports still display who completed the task.
 
 ---
 
-## 7. System Assumptions
+## 7. Assumptions Made
 
-1. **No Authentication**: As specified in the requirements, no login or token-based authentication is enforced. All actions are treated as authorized administrators.
-2. **Capacity Definition**: Only tasks in `Todo` and `In Progress` count against an employee's 3-task capacity limit. `Completed` and `Cancelled` tasks do not consume active capacity.
-3. **Date Granularity**: Due date and leave date collisions are evaluated at calendar-day boundary resolution (midnight to 23:59:59.999).
-4. **Task IDs and Employee IDs**: Auto-incrementing counters maintain separate deterministic sequences (`TSK-001`, `EMP-001`).
+1. **No Login Needed**: As stated in the assignment instructions, there is no login/auth system. Anyone using the app has full access to view, add, and edit data.
+2. **Active Task Definition**: Only tasks with status `Todo` and `In Progress` count toward an employee's maximum capacity of 3 tasks. `Completed` and `Cancelled` tasks do not count.
+3. **Date Comparisons**: Dates for leave checking and overdue checks are evaluated by full calendar days (midnight to 23:59:59) so timezone differences don't accidentally reject valid dates.
+4. **Auto-Increment Counters**: Both Task IDs (`TSK-001`) and Employee IDs (`EMP-001`) use atomic database counters so two people creating items at the same time will never get duplicate IDs.
 
 ---
 
-## 8. Assessment Architectural Questions & Answers
+## 8. Answers to Assessment Questions
 
 ### (1) Where do you validate status transitions and why?
+**My Answer**:
+I validate status transitions **on the backend** inside the `PUT /api/tasks/:id/status` route.
 
-**Answer**:
-Status transitions are validated **strictly on the backend** inside the dedicated endpoint handler `PUT /api/tasks/:id/status`.
+**Why**:
+If I only validated this on the frontend, anyone could open Postman, cURL, or the browser console and send a request jumping directly from `Todo` to `Completed`, or edit a task that is already cancelled. 
 
-- **Why**: Frontend validation exists only to offer a smooth user experience (e.g. rendering only valid next choices in the status dropdown). However, client-side code can easily be circumvented by sending direct HTTP requests via cURL, Postman, or automated scripts.
-- The backend serves as the single source of truth using a finite state machine:
-  $$\text{Todo} \longrightarrow \text{In Progress} \longrightarrow \text{Completed}$$
-  $$\text{Todo} \longrightarrow \text{In Progress} \longrightarrow \text{Cancelled}$$
-- Any illegal jump (e.g. `Todo ➔ Completed`) or modification of locked terminal states (`Completed` or `Cancelled`) is rejected with **HTTP 400 Bad Request**.
+While I also use frontend logic to make the dropdown user-friendly (by only showing valid next statuses), the backend is the real barrier that guarantees the rules:
+- `Todo` can only go to `In Progress`.
+- `In Progress` can go to `Completed` or `Cancelled`.
+- `Completed` and `Cancelled` tasks are permanently locked and cannot be edited.
 
 ---
 
 ### (2) Why does Completed Date come from the backend?
+**My Answer**:
+The `completedDate` is set by the backend using `new Date()` at the exact moment a task transitions to `Completed`.
 
-**Answer**:
-
-- **Tamper Resistance & Audit Trust**: If `completedDate` were accepted from the frontend, clients could forge or backdate task completion timestamps to falsify SLA compliance or performance metrics.
-- **Clock Synchronization & Timezones**: Client devices often have out-of-sync system clocks or disparate local timezones. Generating `completedDate = new Date()` on the server ensures an authoritative, monotonic timestamp in UTC.
-- **Separation of Concerns**: The normal update route (`PUT /api/tasks/:id`) strips `completedDate` from the payload, guaranteeing it is stamped solely when the state machine registers a valid transition into `Completed`.
+**Why**:
+1. **Prevent Cheating / Fake Timestamps**: If the date came from the frontend, a user could change their computer clock or send a fake past date in the request body to pretend they met a deadline.
+2. **Consistent Timezone**: Users can be in different timezones or have incorrect system clocks. Generating the timestamp on the server ensures all completion records are accurate and consistent.
+3. **Protected Field**: In the normal edit task API (`PUT /api/tasks/:id`), the backend strips out `completedDate` so nobody can change it manually.
 
 ---
 
 ### (3) How do you block inactive / on-leave assignment?
+**My Answer**:
+Before creating or updating a task on the backend, I look up the assigned employee and run these checks:
 
-**Answer**:
-Validation is executed in the backend service layer before saving or updating a task:
-
-1. **Inactive Check**: If `employee.status === 'Inactive'`, the assignment is rejected immediately with an HTTP 400 error.
-2. **On-Leave Collision Check**: If `employee.status === 'On Leave'`, the backend extracts the task's `startDate` and the employee's `leaveStart` and `leaveEnd` dates, normalizing them to day boundaries:
-   $$\text{leaveStart} \le \text{taskStartDate} \le \text{leaveEnd}$$
-   If the task start date falls inside this inclusive range, the server rejects the request with HTTP 400 and returns a friendly notification detailing the exact leave dates.
+1. **Inactive Check**: If the employee has `status === 'Inactive'`, the backend immediately rejects the request with a `400 Bad Request` error (`"Cannot assign task to an Inactive employee"`).
+2. **On Leave Check**: If the employee has `status === 'On Leave'`, I compare the task's `startDate` with the employee's `leaveStart` and `leaveEnd` dates:
+   - If the task start date falls within the leave period (both dates inclusive), the request is rejected with a `400` error explaining that the employee is on leave during those dates.
+   - If the task starts after the leave ends, the assignment is allowed.
 
 ---
 
 ### (4) Why are filtering and pagination on the backend?
-
-**Answer**:
-
-- **Scalability & Memory Overhead**: Fetching thousands of records to paginate and filter inside React would consume excessive network bandwidth, spike client memory usage, and freeze low-end mobile devices.
-- **Database Optimization**: MongoDB utilizes compound indexes (`{ status: 1, dueDate: 1 }`, `{ department: 1, priority: 1 }`) to filter and sort millions of records in milliseconds.
-- **Efficiency**: With backend pagination (`skip` & `limit`), the server transfers only the 10 requested items across the wire.
-- **Uniformity with Exports**: The same server-side query builder powers the paginated JSON table API and the unpaginated streaming CSV export.
+**My Answer**:
+**Why**:
+1. **Performance & Device Memory**: If a company has 10,000 tasks, fetching all of them into React would make the browser slow, waste memory, and cause mobile phones to lag or freeze.
+2. **Speed & Bandwidth**: With backend pagination, the server only sends the 10 tasks needed for the current page, which takes only a few kilobytes over the network.
+3. **Database Indexing**: MongoDB uses indexes (like `{ department: 1, status: 1 }` and `{ status: 1, dueDate: 1 }`) to filter and sort through large amounts of data in a few milliseconds.
+4. **Clean CSV Export**: The same query logic used for pagination is reused to fetch and download all matching tasks for the CSV export without loading everything into frontend memory.
 
 ---
 
 ### (5) Why do filters live in the URL?
-
-**Answer**:
-
-- **Shareability & Deep Linking**: Users can copy the URL (`/tasks?status=In%20Progress&priority=High&page=2`) and share it with colleagues or open it in a new tab; it loads the exact same dataset.
-- **Browser History & Reload Persistence**: Users can use the browser's Back and Forward buttons or refresh the page without losing their active search, filters, or page numbers.
-- **Declarative Architecture**: URL query parameters represent the single source of truth for page state, simplifying React state management.
+**My Answer**:
+**Why**:
+1. **Shareable Links**: If I filter tasks by `Department = Development` and `Status = In Progress` on page 2, the URL becomes `/tasks?department=Development&status=In%20Progress&page=2`. I can copy this link and send it to a colleague, and they will see the exact same filtered view.
+2. **Page Refresh**: If a user refreshes the page, their selected filters and current page number are not lost.
+3. **Browser History**: The browser's Back and Forward buttons work naturally, allowing users to go back to their previous filter view.
 
 ---
 
 ### (6) What can go wrong if two requests assign a 4th active task at the same time?
+**My Answer**:
+This causes a **Race Condition** (also known as a Check-Then-Act problem):
 
-**Answer**:
-This introduces a **Race Condition (Check-Then-Act / Phantom Read)**:
+**What can happen**:
+- Imagine Rahul currently has 2 active tasks. The company limit is 3.
+- Two project managers submit a new task for Rahul at the exact same second:
+  1. **Request A** asks the database: *"How many active tasks does Rahul have?"* The database answers: `2`. Since $2 < 3$, Request A is allowed.
+  2. **Request B** asks the database at the same moment: *"How many active tasks does Rahul have?"* The database still answers: `2` (because Request A hasn't finished saving yet). So Request B is also allowed.
+  3. Request A writes its task to the database $\implies$ Rahul now has 3 active tasks.
+  4. Request B writes its task to the database $\implies$ Rahul now has **4 active tasks**!
+- The business rule is broken because both requests checked the count before either finished writing.
 
-1. Assume Employee $E$ currently has 2 active tasks (`Todo` + `In Progress`). The maximum capacity is 3.
-2. Two requests ($R_1$ and $R_2$) arrive concurrently to assign new tasks to $E$:
-   - $R_1$ queries active task count: receives **2** ($2 < 3 \implies \text{Allowed}$).
-   - $R_2$ queries active task count concurrently: receives **2** ($2 < 3 \implies \text{Allowed}$).
-   - $R_1$ inserts task ➔ Employee now has 3 active tasks.
-   - $R_2$ inserts task ➔ Employee now has **4 active tasks**, violating the business rule!
-3. **Mitigation**:
-   - **Optimistic Concurrency / Document Counter**: Maintain an `activeTaskCount` field on the `Employee` model and perform atomic updates using MongoDB conditional filters:
-     ```javascript
-     const updated = await Employee.findOneAndUpdate(
-       { _id: employeeId, activeTaskCount: { $lt: 3 }, status: "Active" },
-       { $inc: { activeTaskCount: 1 } },
-       { new: true },
-     );
-     if (!updated) {
-       throw new AppError(
-         "Employee reached maximum capacity of 3 active tasks",
-         400,
-       );
-     }
-     ```
-   - **MongoDB Multi-Document Transactions**: Wrap the capacity count and task creation within an isolated `session.withTransaction()` block.
+**How to prevent this**:
+1. **Atomic Counter on Employee**: We can store an `activeTaskCount` number directly on the employee document and use MongoDB's atomic filter:
+   ```javascript
+   const result = await Employee.findOneAndUpdate(
+     { _id: employeeId, activeTaskCount: { $lt: 3 }, status: 'Active' },
+     { $inc: { activeTaskCount: 1 } }
+   );
+   if (!result) {
+     throw new Error("Employee already has 3 active tasks");
+   }
+   ```
+   Because MongoDB updates single documents atomically, only one request will succeed, and the second request will be safely rejected.
+2. **Database Transactions**: We can run the count check and the task creation inside a MongoDB session transaction (`session.withTransaction()`).
